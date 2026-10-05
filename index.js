@@ -1,12 +1,9 @@
-
-const IP_DO_COMPUTADOR = 'COLOQUE_SEU_IP_AQUI';
+const IP_DO_COMPUTADOR = '10.88.200.210';
 
 const PORTA_MQTT = 9001;
 
 const TOPICO_TEMPERATURA = 'aulas/professor/temperatura';
-
 const TOPICO_UMIDADE = 'aulas/professor/umidade';
-
 const TOPICO_QUALIDADE_AR = 'aulas/professor/qualidade_ar';
 
 const btnSobre = document.getElementById('btnSobre');
@@ -23,6 +20,8 @@ const qualidadeAr = document.getElementById('qualidadeAr');
 
 const btnSenha = document.getElementById('btnSenha');
 
+/* NAVEGAÇÃO */
+
 btnSobre.addEventListener('click', function () {
     sobre.style.display = 'block';
     dashboard.style.display = 'none';
@@ -32,6 +31,8 @@ btnDashboard.addEventListener('click', function () {
     sobre.style.display = 'none';
     dashboard.style.display = 'block';
 });
+
+/* SENHA DO GRUPO */
 
 btnSenha.addEventListener('click', function () {
     const senha = prompt('Digite a senha fornecida pelo professor:');
@@ -43,62 +44,70 @@ btnSenha.addEventListener('click', function () {
     }
 });
 
-if (IP_DO_COMPUTADOR !== 'COLOQUE_SEU_IP_AQUI') {
-    const clientId = 'dashboard-' + Math.random().toString(16).substring(2);
+/* MQTT */
 
-    const client = new Paho.MQTT.Client(IP_DO_COMPUTADOR, PORTA_MQTT, clientId);
+const clientId = 'dashboard-' + Math.random().toString(16).substring(2);
 
-    client.connect({
-        useSSL: false,
+const client = new Paho.MQTT.Client(IP_DO_COMPUTADOR, PORTA_MQTT, clientId);
 
-        onSuccess: function () {
-            console.log('Conectado ao Mosquitto!');
+/* CONEXÃO */
 
-            statusMQTT.className = 'conectado';
+client.connect({
+    useSSL: false,
 
-            statusMQTT.textContent = '🟢 Conectado';
+    onSuccess: function () {
+        console.log('Conectado ao Mosquitto!');
 
-            client.subscribe(TOPICO_TEMPERATURA);
+        statusMQTT.className = 'conectado';
 
-            client.subscribe(TOPICO_UMIDADE);
+        statusMQTT.textContent = '🟢 Conectado';
 
-            client.subscribe(TOPICO_QUALIDADE_AR);
-        },
+        client.subscribe(TOPICO_TEMPERATURA);
 
-        onFailure: function (erro) {
-            console.log('Erro ao conectar:', erro);
+        client.subscribe(TOPICO_UMIDADE);
 
-            statusMQTT.className = 'desconectado';
+        client.subscribe(TOPICO_QUALIDADE_AR);
 
-            statusMQTT.textContent = '🔴 Desconectado';
-        },
-    });
+        console.log('Inscrito nos tópicos MQTT.');
+    },
 
-    client.onConnectionLost = function () {
-        console.log('Conexão perdida.');
+    onFailure: function (erro) {
+        console.log('Erro ao conectar:', erro);
 
         statusMQTT.className = 'desconectado';
 
         statusMQTT.textContent = '🔴 Desconectado';
-    };
+    },
+});
 
-    client.onMessageArrived = function (message) {
-        console.log('Tópico:', message.destinationName);
+/* CONEXÃO PERDIDA */
 
-        console.log('Valor:', message.payloadString);
+client.onConnectionLost = function (responseObject) {
+    console.log('Conexão perdida.');
 
-        const valor = message.payloadString;
+    statusMQTT.className = 'desconectado';
 
-        if (message.destinationName === TOPICO_TEMPERATURA) {
-            temperatura.textContent = valor + ' °C';
-        }
+    statusMQTT.textContent = '🔴 Desconectado';
+};
 
-        if (message.destinationName === TOPICO_UMIDADE) {
-            umidade.textContent = valor + ' %';
-        }
+/* RECEBER MENSAGENS */
 
-        if (message.destinationName === TOPICO_QUALIDADE_AR) {
-            qualidadeAr.textContent = valor;
-        }
-    };
-}
+client.onMessageArrived = function (message) {
+    console.log('Tópico:', message.destinationName);
+
+    console.log('Valor:', message.payloadString);
+
+    const valor = message.payloadString;
+
+    if (message.destinationName === TOPICO_TEMPERATURA) {
+        temperatura.textContent = valor + ' °C';
+    }
+
+    if (message.destinationName === TOPICO_UMIDADE) {
+        umidade.textContent = valor + ' %';
+    }
+
+    if (message.destinationName === TOPICO_QUALIDADE_AR) {
+        qualidadeAr.textContent = valor;
+    }
+};
